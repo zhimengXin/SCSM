@@ -56,7 +56,7 @@
     ```
 * Weights Preparation
   - We use the imagenet pretrain weights to initialize our model. Download the same models from here: [GoogleDrive](https://drive.google.com/file/d/1rsE20_fSkYeIhFaNU04rBfEDkMENLibj/view?usp=sharing) [BaiduYun](https://pan.baidu.com/s/1IfxFq15LVUI3iIMGFT8slw)
-  - The extract code for all BaiduYun link is **0000**
+
 
 **4. Training and Evaluation**
 
