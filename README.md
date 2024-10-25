@@ -1,10 +1,10 @@
-
+<div align="center"><img src="motivation.pdf" width="800"></div>
 
 ## Spatial-Channel State Modeling for Few-Shot Object Detection
 
 
 
-<div align="center"><img src="framework.png" width="800"></div>
+<div align="center"><img src="framework.pdf" width="800"></div>
 
 
 ## Quick Start
