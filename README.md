@@ -73,14 +73,14 @@
   ```
 
 
-  * Then run voc novel.
+* Then run voc novel.
   ```angular2html
   bash run_voc_base.sh
   ```
 
 
 
-  * Fist run coco base.
+* Fist run coco base.
   ```angular2html
   bash run_coco_base.sh
   ```
@@ -93,7 +93,7 @@
   ```
 
 
-  * Then run coco novel.
+* Then run coco novel.
   ```angular2html
   bash run_coco_base.sh
   ```
