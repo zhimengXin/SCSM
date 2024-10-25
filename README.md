@@ -102,11 +102,4 @@
 
 
 ## Citing
-If you use this work in your research or wish to refer to the baseline results published here, please use the following BibTeX entries:
-```
-@inproceedings{qiao2021defrcn,
-  title={Spatial-Channel State Modeling for Few-Shot Object Detection},
-  author={Zhimeng Xin},
-  
-}
-```
+
