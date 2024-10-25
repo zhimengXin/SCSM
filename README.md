@@ -32,7 +32,7 @@
 
 **3. Prepare Data and Weights**
 * Data Preparation
-  - We evaluate our models on two datasets for both FSOD and G-FSOD settings:
+  - We evaluate our models on two datasets:
 
     | Dataset | Size | GoogleDrive | BaiduYun | Note |
     |:---:|:---:|:---:|:---:|:---:|
@@ -50,7 +50,7 @@
         | -- VOC2007
         | -- VOC2012
         | -- vocsplit
-      defrcn
+      scsm
       tools
       ...
     ```
@@ -65,15 +65,33 @@
   bash run_voc_base.sh
   ```
 
+* pre-trained base model prepare.
+  ```angular2html
+   python tools/model_surgery.py --dataset voc --method randinit                         \
+     --src-path ${SAVE_DIR}/voc_base/model_final.pth                      \
+     --save-dir ${SAVE_DIR}/voc_base
+  ```
+
+
   * Then run voc novel.
   ```angular2html
   bash run_voc_base.sh
   ```
 
+
+
   * Fist run coco base.
   ```angular2html
   bash run_coco_base.sh
   ```
+
+* pre-trained base model prepare.
+  ```angular2html
+   python tools/model_surgery.py --dataset voc --method remove                         \
+     --src-path ${SAVE_DIR}/coco_base/model_final.pth                      \
+     --save-dir ${SAVE_DIR}/coco_base
+  ```
+
 
   * Then run coco novel.
   ```angular2html
