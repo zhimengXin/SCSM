@@ -1,4 +1,4 @@
-<div align="center"><img src="motivation_1.jpg" width="800"></div>
+<div align="center"><img src="motivation_1.jpg" width="300"></div>
 
 ## Spatial-Channel State Modeling for Few-Shot Object Detection
 
