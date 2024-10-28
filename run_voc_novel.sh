@@ -8,12 +8,11 @@ do
         OUTPUT_DIR "output/${shot}shotgfsod" \
         MODEL.WEIGHTS "model_reset_surgery.pth" \
         MODEL.BACKBONE.WITHSCSM True \
-        # MODEL.BACKBONE.WITHECEA = False
-        # MODEL.BACKBONE.FREEZE_ECEA = False
+        # MODEL.BACKBONE.WITHSFA = False
+        # MODEL.BACKBONE.FREEZE_SFA = False
         # MODEL.BACKBONE.WITHMAMBA = False
         # MODEL.BACKBONE.WITHSCSM = False
         # MODEL.BACKBONE.WITHSFASA = False
         # MODEL.BACKBONE.WITHSFASENet = False
         # MODEL.BACKBONE.CNN = False
-        # MODEL.BACKBONE.ATTACK = False
 done
