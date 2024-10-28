@@ -9,35 +9,39 @@ import logging
 from torch import nn
 from detectron2.structures import ImageList
 from detectron2.utils.logger import log_first_n
-from detectron2.modeling.backbone import build_backbone
+from scsm.modeling.backbone import build_backbone
 from detectron2.modeling.postprocessing import detector_postprocess
 from detectron2.modeling.proposal_generator import build_proposal_generator
 from .build import META_ARCH_REGISTRY
 from .gdl import decouple_layer, AffineLayer
-from defrcn.modeling.roi_heads import build_roi_heads
+from scsm.modeling.roi_heads import build_roi_heads
 from detectron2.layers import Conv2d, ShapeSpec, get_norm
 from torchvision import transforms
 
 #import  from MMDetection start
 from mmcv.cnn import ConvModule
-from mmcv.runner import BaseModule
+#from mmcv.runner import BaseModule
 from detectron2.structures import Boxes
 
-from mmcv.cnn import (build_activation_layer, build_conv_layer,
-                      build_norm_layer, xavier_init)
-from mmcv.cnn.bricks.registry import (TRANSFORMER_LAYER,
-                                     TRANSFORMER_LAYER_SEQUENCE)
+# from mmcv.cnn import (build_activation_layer, build_conv_layer,
+#                       build_norm_layer, xavier_init)
+
+from mmengine.model import caffe2_xavier_init, constant_init
+
+#from mmcv.cnn.bricks.registry import (TRANSFORMER_LAYER, TRANSFORMER_LAYER_SEQUENCE)
 from mmcv.cnn.bricks.transformer import (BaseTransformerLayer,
                                          TransformerLayerSequence,
                                          build_transformer_layer_sequence,
                                          build_positional_encoding)
-from mmdet.models.utils.builder import TRANSFORMER
+#from mmdet.models.utils.builder import TRANSFORMER
 
 from torch.nn.init import normal_
 from mmcv.ops.multi_scale_deform_attn import MultiScaleDeformableAttention
 
 from torchvision import transforms
 # from torchvision.transforms import v2
+
+import os
 
 import os
 #import from MMDetection end
@@ -48,7 +52,7 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import skimage.transform
 
-from defrcn.modeling.meta_arch.models_mamba import create_block
+from scsm.modeling.meta_arch.models_mamba import create_block
 
 
 __all__ = ["GeneralizedRCNN"]
@@ -225,7 +229,9 @@ class GeneralizedRCNN(nn.Module):
         
         self.mamba = create_block(d_model=1024)
 
-        self.with_adapter = False
+        #self.onlymamba = cfg.MODEL.BACKBONE.WITHMAMBA
+
+        self.with_adapter = cfg.MODEL.BACKBONE.CNN
         if self.with_adapter:
             self.adapter = AdapterForward(1024, 360)
         # else:
@@ -250,8 +256,30 @@ class GeneralizedRCNN(nn.Module):
         self.affine_rpn = AffineLayer(num_channels=self._SHAPE_[self.roi_heads.in_features[-1]].channels, bias=True)
         self.affine_rcnn = AffineLayer(num_channels=self._SHAPE_[self.roi_heads.in_features[-1]].channels, bias=True)
         self.features = []
+
+        self.WithExtConv = False
+        self.ExtConvLayer = 1
+        if self.WithExtConv:
+            hidden_dim = 1024
+            input_dim = self._SHAPE_['res4'].channels
+            out_channels = hidden_dim
+            for i in range(self.ExtConvLayer):
+                if i == 0:
+                    in_channels = input_dim
+                else:
+                    in_channels = hidden_dim
+
+                if i == self.ExtConvLayer - 1:
+                    out_channels = input_dim
+                else:
+                    out_channels = hidden_dim
+
+                setattr(self, f'ext_conv_{i}', nn.Conv2d(in_channels, out_channels, 3, 1, 1))
+                
+                weight_init.c2_xavier_fill(getattr(self, f'ext_conv_{i}'))
+
         
-        if cfg.MODEL.BACKBONE.WITHPAM:
+        if cfg.MODEL.BACKBONE.WITHSFA:
             # add transofomer encoder
             
             in_channels_trans = 2048
@@ -304,8 +332,8 @@ class GeneralizedRCNN(nn.Module):
         """
             - 2024.6.28
         """
-        self.ECEAmamba = False
-        if self.ECEAmamba:
+        self.SCSM = cfg.MODEL.BACKBONE.WITHSCSM
+        if self.SCSM:
             # add transofomer encoder
 
             positional_encoding=dict(
@@ -336,11 +364,12 @@ class GeneralizedRCNN(nn.Module):
                         operation_order=('self_attn', 'norm', 'ffn', 'norm')))
             self.num_feature_levels = out_channels
             self.encoder = build_transformer_layer_sequence(encoder)
-            self.mamba_block = create_block(d_model=256)
-
+            # self.mamba_block = create_block(d_model=256)
+            self.mamba_pooled = 256 # 16*16
             for i in range(1):
                 setattr(self, f'encoder_{i}', build_transformer_layer_sequence(encoder))
-                setattr(self, f'mamba_block_{i}', create_block(d_model=256))
+                # setattr(self, f'mamba_block_{i}', create_block(d_model=256))
+                setattr(self, f'mamba_block_{i}', create_block(d_model=self.mamba_pooled))
 
             self.embed_dims = self.encoder.embed_dims
             self.reference_points = nn.Linear(self.embed_dims, 2)
@@ -355,11 +384,11 @@ class GeneralizedRCNN(nn.Module):
 ############################################################################################################################
         """
             - 2024.7.9
-            - ECEA+Transformer
+            - SFA+SA
         """
-        from defrcn.modeling.meta_arch.myTransformer import TransformerEncoderLayer
-        self.ECEATransformer = True
-        if self.ECEATransformer:
+        from scsm.modeling.meta_arch.myTransformer import TransformerEncoderLayer
+        self.SFASA = cfg.MODEL.BACKBONE.WITHSFASA
+        if self.SFASA:
             # add transofomer encoder
 
             positional_encoding=dict(
@@ -391,7 +420,7 @@ class GeneralizedRCNN(nn.Module):
             self.num_feature_levels = out_channels
             self.encoder = build_transformer_layer_sequence(encoder)
 
-            for i in range(1):
+            for i in range(3):
                 setattr(self, f'encoder_{i}', build_transformer_layer_sequence(encoder))
                 setattr(self, f'transformer_block_{i}', TransformerEncoderLayer(256, 4, 1024))
 
@@ -404,15 +433,14 @@ class GeneralizedRCNN(nn.Module):
                 torch.Tensor(self.num_feature_levels, self.embed_dims))
             
 ############################################################################################################################
-
 ############################################################################################################################
         """
-            - 2024.7.9
-            - ECEA+SENet
+            - 2024.7.15
+            - SFA+SENet
         """
-        from defrcn.modeling.meta_arch.myTransformer import SE_Block
-        self.ECEASENet = False
-        if self.ECEASENet:
+        from scsm.modeling.meta_arch.myTransformer import SE_Block
+        self.SFASENet = cfg.MODEL.BACKBONE.WITHSFASENet
+        if self.SFASENet:
             # add transofomer encoder
 
             positional_encoding=dict(
@@ -425,8 +453,8 @@ class GeneralizedRCNN(nn.Module):
             
             norm = ""
             use_bias = norm == ""
-            self.lateral_conv_in = Conv2d( in_channels, out_channels, kernel_size=1, bias=use_bias )
-            self.lateral_conv_out = Conv2d( out_channels, in_channels, kernel_size=1, bias=use_bias ) 
+            self.lateral_conv_in = Conv2d(in_channels, out_channels, kernel_size=1, bias=use_bias )
+            self.lateral_conv_out = Conv2d(out_channels, in_channels, kernel_size=1, bias=use_bias ) 
             
             weight_init.c2_xavier_fill(self.lateral_conv_in)
             weight_init.c2_xavier_fill(self.lateral_conv_out)
@@ -444,9 +472,9 @@ class GeneralizedRCNN(nn.Module):
             self.num_feature_levels = out_channels
             self.encoder = build_transformer_layer_sequence(encoder)
 
-            for i in range(1):
+            for i in range(3):
                 setattr(self, f'encoder_{i}', build_transformer_layer_sequence(encoder))
-                setattr(self, f'senet_block_{i}', SE_Block(256, 4))
+                setattr(self, f'se_block_{i}', SE_Block(256, 4))
 
             self.embed_dims = self.encoder.embed_dims
             self.reference_points = nn.Linear(self.embed_dims, 2)
@@ -458,13 +486,14 @@ class GeneralizedRCNN(nn.Module):
             
 ############################################################################################################################
 
+
         self.to(self.device) 
             
         if cfg.MODEL.BACKBONE.FREEZE:
             for p in self.backbone.parameters():
                 p.requires_grad = False
             print("froze backbone parameters")
-        if cfg.MODEL.BACKBONE.FREEZE_PAM:
+        if cfg.MODEL.BACKBONE.FREEZE_SFA:
             for p in self.encoder.parameters():
                 p.requires_grad = False
             
@@ -483,7 +512,7 @@ class GeneralizedRCNN(nn.Module):
             # for p in self.positional_encoding:
             #     p.requires_grad = False
                 
-            print("froze PAM parameters")
+            print("froze SFA parameters")
 
         
 
@@ -662,60 +691,15 @@ class GeneralizedRCNN(nn.Module):
         """
             - 2024.6.21        
         """
-        # cnnadapter = False
-        # act = "relu"
-        # if cnnadapter:
-        #     
-        #     features_res4_original = features["res4"]
-        #     B, C, H, W = features["res4"].shape
-        #     features["res4"] = features["res4"].view(B, C, H * W).permute(0, 2, 1)
-        #     assert act in ["relu", "sig", "silu", "ident", "default"]
-        #     af = None
-        #     if act == "relu" or act == "default":
-        #         af = nn.ReLU()
-        #     elif act == "sig":
-        #         af = nn.Sigmoid()
-        #     elif act == "silu":
-        #         af = nn.SiLU()
-        #     elif act == "ident":
-        #         af = nn.Identity()
-        #     else:c
-        #         print("act")
-        #         raise
-        #     af = af.to('cuda')
-        #     mamba1 = create_block(d_model=C).to('cuda')
-        #     mamba2 = create_block(d_model=C).to('cuda')
-        #     hidden_states1, _ = mamba1(features["res4"])
-        #     hidden_states1 = af(hidden_states1)
-        #     hidden_states2, _ = mamba2(hidden_states1)
-
-        #     features["res4"] = hidden_states2.permute(0, 2, 1).view(B, C, H, W) + features_res4_original
-
-        # MLP = False
-        # if MLP:
-        #     features_res4_original = features["res4"]
-        #     B, C, H, W = features["res4"].shape
-        #     features["res4"] = features["res4"].view(B, C, H * W)
-        #     fc1 = nn.Linear(H*W, H*W*2).to('cuda')
-        #     relu = nn.ReLU().to('cuda')
-        #     fc2 = nn.Linear(H*W*2, H*W).to('cuda')
-        #     features["res4"] = fc1(features["res4"])
-        #     features["res4"] = relu(features["res4"])
-        #     features["res4"] = fc2(features["res4"])
-        #     features["res4"] = features["res4"].view(B, C, H, W) + features_res4_original
-
-        mamba = False
-        if mamba:     
+        
+        #onlymamba = self.onlymamba
+        if self.cfg.MODEL.BACKBONE.WITHMAMBA:     
             B, C, H, W = features["res4"].shape
             features["res4"] = features["res4"].view(B, C, H * W).permute(0, 2, 1)    
             hidden_states, residual = self.mamba(features["res4"])
             features["res4"] = (hidden_states + residual).permute(0, 2, 1).view(B, C, H, W)
         
-        mambaAtt = False
-        if mambaAtt:
-            pass
-
-
+        
         if self.transform_feat is not None and self.training:
             features = {k: self.transform_feat(v) for k, v in features.items()}
         if self.cfg.MODEL.BACKBONE.FEATURE_AUG_TYPE == "Cutout":
@@ -726,8 +710,13 @@ class GeneralizedRCNN(nn.Module):
             features = mixup_feature(features)
 
 
-        
-        if self.cfg.MODEL.BACKBONE.WITHPAM:
+        if self.WithExtConv:
+            for i in range(self.ExtConvLayer):
+                for f in features.keys():
+                    features[f] = getattr(self, f'ext_conv_{i}')(features[f]) + features[f]
+                # features = [(getattr(self, f'ext_conv_{i}')(features[f]) + features[f]) for f in features.keys()]
+
+        if self.cfg.MODEL.BACKBONE.WITHSFA:
             results = [self.lateral_conv_in(features[key]) for key in features.keys()]
             
             #apply trans encoder
@@ -812,7 +801,10 @@ class GeneralizedRCNN(nn.Module):
             for f, res in zip(features, out_results):
                 features[f] = features[f] * 0.6 + self.lateral_conv_out(res) * 0.4
 
-        if self.ECEAmamba:
+
+##############################################################################################################
+
+        if self.SCSM:
             results = [self.lateral_conv_in(features[key]) for key in features.keys()]
             
             #apply trans encoder
@@ -888,9 +880,21 @@ class GeneralizedRCNN(nn.Module):
                     level_start_index=level_start_index,
                     valid_ratios=valid_ratios
                 )
+
                 feat_flatten = memory.permute(1, 0, 2) # (bs, H*W, embed_dims)
-                feat_flatten, residual = getattr(self, f'mamba_block_{i}')(feat_flatten)
-                feat_flatten = (feat_flatten + residual).permute(1, 0, 2) # (H*W, bs, embed_dims)
+                pooled_C = self.mamba_pooled
+
+                if feat_flatten.shape[1] != pooled_C:
+                    feat_mamba = F.interpolate(feat_flatten.permute(0, 2, 1), size=pooled_C, mode='nearest')
+                else:
+                    feat_mamba = feat_flatten.permute(0, 2, 1)
+
+                feat_flatten_mamba, residual = getattr(self, f'mamba_block_{i}')(feat_mamba)
+                feat_flatten_mamba = F.interpolate(feat_flatten_mamba, size=feat_flatten.shape[1], mode='nearest').permute(0, 2, 1)
+                
+                feat_flatten = (feat_flatten + feat_flatten_mamba).permute(1, 0, 2) # (H*W, bs, embed_dims)
+
+                
             feat_flatten = feat_flatten.permute(1, 2, 0)
 
             bn , channel,_ = feat_flatten.shape
@@ -905,7 +909,7 @@ class GeneralizedRCNN(nn.Module):
             - 2024.7.9
         """
 
-        if self.ECEATransformer:
+        if self.SFASA:
             results = [self.lateral_conv_in(features[key]) for key in features.keys()]
             
             #apply trans encoder
@@ -969,7 +973,7 @@ class GeneralizedRCNN(nn.Module):
             lvl_pos_embed_flatten = lvl_pos_embed_flatten.permute(1, 0, 2)  # (H*W, bs, embed_dims)
             kwargs = {}
 
-            for i in range(1):
+            for i in range(3):
                 memory = getattr(self, f'encoder_{i}')(
                     query=feat_flatten,
                     key=None,
@@ -994,12 +998,13 @@ class GeneralizedRCNN(nn.Module):
                 features[f] = features[f] * 0.6 + self.lateral_conv_out(res) * 0.4
 ###################################################################################################################
 
+
 ###################################################################################################################
         """
-            - 2024.7.10
+            - 2024.7.15
         """
 
-        if self.ECEASENet:
+        if self.SFASENet:
             results = [self.lateral_conv_in(features[key]) for key in features.keys()]
             
             #apply trans encoder
@@ -1063,7 +1068,7 @@ class GeneralizedRCNN(nn.Module):
             lvl_pos_embed_flatten = lvl_pos_embed_flatten.permute(1, 0, 2)  # (H*W, bs, embed_dims)
             kwargs = {}
 
-            for i in range(1):
+            for i in range(3):
                 memory = getattr(self, f'encoder_{i}')(
                     query=feat_flatten,
                     key=None,
@@ -1074,9 +1079,9 @@ class GeneralizedRCNN(nn.Module):
                     reference_points=reference_points,
                     level_start_index=level_start_index,
                     valid_ratios=valid_ratios
-                )
-                feat_flatten = memory.permute(1, 2, 0) # (bs, d_dims, H*W)
-                feat_flatten = getattr(self, f'senet_block_{i}')(feat_flatten)
+                ) # (H*W, bs, embed_dims)
+                feat_flatten = memory.permute(1, 2, 0) # (bs, embed_dims, H*W)
+                feat_flatten = getattr(self, f'se_block_{i}')(feat_flatten)
                 feat_flatten = feat_flatten.permute(2, 0, 1) # (H*W, bs, embed_dims)
             feat_flatten = feat_flatten.permute(1, 2, 0)
 
@@ -1092,12 +1097,12 @@ class GeneralizedRCNN(nn.Module):
         """
             - 2024.6.27
         """
-        PAMmamba = False
-        if PAMmamba:     
-            B, C, H, W = features["res4"].shape
-            features["res4"] = features["res4"].view(B, C, H * W).permute(0, 2, 1)    
-            hidden_states, residual = self.mamba(features["res4"])
-            features["res4"] = (hidden_states + residual).permute(0, 2, 1).view(B, C, H, W)
+        # PAMmamba = False
+        # if PAMmamba:     
+        #     B, C, H, W = features["res4"].shape
+        #     features["res4"] = features["res4"].view(B, C, H * W).permute(0, 2, 1)    
+        #     hidden_states, residual = self.mamba(features["res4"])
+        #     features["res4"] = (hidden_states + residual).permute(0, 2, 1).view(B, C, H, W)
         
         
         
@@ -1110,9 +1115,9 @@ class GeneralizedRCNN(nn.Module):
             features["res4"] = AdapterOut
 
     
-
+        is_attack = self.cfg.MODEL.BACKBONE.ATTACK
         if is_attack:
-            # print("attack is succssfull.")
+            print("attack is succssfull.")
             #calculate the attack grad
             # features_new = {}
             # for key in features.keys():
@@ -1135,15 +1140,6 @@ class GeneralizedRCNN(nn.Module):
             total_norm_loss = sum(detector_losses.values()) + sum(proposal_losses.values())
             
             feature_grad = {key:torch.autograd.grad(total_norm_loss, features[key], retain_graph=True)[0] for key in features}
-            #grads = torch.autograd.grad(loss, parameters, retain_graph=True)
-            
-            # feature_grad_rpn = {key:torch.autograd.grad(proposal_losses.values(), features[key], retain_graph=True)[0] for key in features}
-            # feature_grad_cls = {key:torch.autograd.grad(detector_losses.values(), features[key], retain_graph=True)[0] for key in features}
-            # features_attack_rpn = {}
-            # features_attack_cls = {}
-            # for key in features.keys(): 
-            #     features_attack_rpn[key] = features[key] + 0.01 * torch.sign(feature_grad_rpn[key])
-            #     features_attack_cls[key] = features[key] + 0.01 * torch.sign(feature_grad_cls[key])
 
             features_attack = {}
             # std_deviation = np.std(features, axis=0)
@@ -1191,31 +1187,7 @@ class GeneralizedRCNN(nn.Module):
                         img_save_path = os.path.join(self.cfg.OUTPUT_DIR, file_name +'_' + str(key) + '.png')
                         plt.savefig(img_save_path,dpi=500)
                         plt.close()
-                    
-                    
-                
-                # #print("p_norm is : ",p_norm)
-                # if needBN:                
-                #     num_features = features_attack[key].shape[1]
-                #     batch_norm = self.bn_attack(num_features).to(self.device)
-                #     features_attack[key] = batch_norm(features_attack[key].to(self.device))
-
-                # 限制对抗样本的扰动大小为 epsilon
-
-
-            # features_attack_rpn_de = features_attack_rpn            
-            # if self.cfg.MODEL.RPN.ENABLE_DECOUPLE:
-            #     scale = self.cfg.MODEL.RPN.BACKWARD_SCALE
-            #     features_attack_rpn_de = {k: self.affine_rpn(decouple_layer(features_attack_rpn[k], scale)) for k in features_attack_rpn}
-            # proposals, proposal_attack_losses = self.proposal_generator(images, features_attack_rpn_de, gt_instances)
-
-            # features_attack_rcnn_de = features_attack_cls
-            # if self.cfg.MODEL.ROI_HEADS.ENABLE_DECOUPLE:
-            #     scale = self.cfg.MODEL.ROI_HEADS.BACKWARD_SCALE
-            #     features_attack_rcnn_de = {k: self.affine_rcnn(decouple_layer(features_attack_cls[k], scale)) for k in features_attack_cls}
-            # results, detector_attack_losses = self.roi_heads(images, features_attack_rcnn_de, proposals, gt_instances)
-
-
+          
 
             #plt.imshow(features_attack)
             features_attack_rpn = features_attack            
@@ -1229,11 +1201,6 @@ class GeneralizedRCNN(nn.Module):
                 scale = self.cfg.MODEL.ROI_HEADS.BACKWARD_SCALE
                 features_attack_rcnn = {k: self.affine_rcnn(decouple_layer(features_attack[k], scale)) for k in features_attack}
             results, detector_attack_losses = self.roi_heads(images, features_attack_rcnn, proposals, gt_instances)
-
-        
-            # proposal_losses = {key: proposal_losses[key] + (iter/self.cfg.SOLVER.MAX_ITER) * proposal_attack_losses[key] for key in proposal_losses}
-            # detector_losses = {key: detector_losses[key] + (iter/self.cfg.SOLVER.MAX_ITER) * detector_attack_losses[key] for key in detector_losses}
-            
 
             proposal_losses = {key: 0.8 * proposal_losses[key] + 0.2 * proposal_attack_losses[key] for key in proposal_losses}
             detector_losses = {key: 0.8 * detector_losses[key] + 0.2 * detector_attack_losses[key] for key in detector_losses}
@@ -1292,7 +1259,16 @@ class GeneralizedRCNN(nn.Module):
         return proposal_losses, detector_losses, results, images.image_sizes
 
     def preprocess_image(self, batched_inputs):
+        #resize image to 224 X 224
+        
         images = [x["image"].to(self.device) for x in batched_inputs]
+        
+        # new_size = 224
+        # images = [x.float()/255.0 for x in images]
+        # images = [F.interpolate(x.unsqueeze(0), size=(new_size,new_size), mode='bilinear').squeeze(0) for x in images]
+        # images = [(x * 255.0).to(torch.uint8) for x in images]
+
+        # images = [x["image"].to(self.device) for x in batched_inputs]
         gt_classes = [x["instances"].gt_classes for x in batched_inputs]
         images = [self.normalizer(x) for x in images]
         #apply CutMix to images
@@ -1307,8 +1283,10 @@ class GeneralizedRCNN(nn.Module):
             images = mixup(images)
 
         # images = [self.transform(x) for x in images]
-        
-        images = ImageList.from_tensors(images, self.backbone.size_divisibility)
+        if hasattr(self.backbone, "size_divisibility"):
+            images = ImageList.from_tensors(images, self.backbone.size_divisibility)
+        else:
+            images = ImageList.from_tensors(images, 32)
         
         return images
     def get_features(self):
