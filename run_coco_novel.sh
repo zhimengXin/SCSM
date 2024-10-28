@@ -9,13 +9,12 @@ do
         OUTPUT_DIR "coco/fsod/${shot}shot" \
         MODEL.WEIGHTS "coco/model_reset_remove.pth" \
         MODEL.BACKBONE.WITHSCSM True \
-        # MODEL.BACKBONE.WITHECEA = False
-        # MODEL.BACKBONE.FREEZE_ECEA = False
+        # MODEL.BACKBONE.WITHSFA = False
+        # MODEL.BACKBONE.FREEZE_SFA = False
         # MODEL.BACKBONE.WITHMAMBA = False
         # MODEL.BACKBONE.WITHSCSM = False
         # MODEL.BACKBONE.WITHSFASA = False
         # MODEL.BACKBONE.WITHSFASENet = False
         # MODEL.BACKBONE.CNN = False
-        # MODEL.BACKBONE.ATTACK = False
         
 done
