@@ -20,28 +20,24 @@ from torchvision import transforms
 
 #import  from MMDetection start
 from mmcv.cnn import ConvModule
-#from mmcv.runner import BaseModule
+from mmcv.runner import BaseModule
 from detectron2.structures import Boxes
 
-# from mmcv.cnn import (build_activation_layer, build_conv_layer,
-#                       build_norm_layer, xavier_init)
-
-from mmengine.model import caffe2_xavier_init, constant_init
-
-#from mmcv.cnn.bricks.registry import (TRANSFORMER_LAYER, TRANSFORMER_LAYER_SEQUENCE)
+from mmcv.cnn import (build_activation_layer, build_conv_layer,
+                      build_norm_layer, xavier_init)
+from mmcv.cnn.bricks.registry import (TRANSFORMER_LAYER,
+                                     TRANSFORMER_LAYER_SEQUENCE)
 from mmcv.cnn.bricks.transformer import (BaseTransformerLayer,
                                          TransformerLayerSequence,
                                          build_transformer_layer_sequence,
                                          build_positional_encoding)
-#from mmdet.models.utils.builder import TRANSFORMER
+from mmdet.models.utils.builder import TRANSFORMER
 
 from torch.nn.init import normal_
 from mmcv.ops.multi_scale_deform_attn import MultiScaleDeformableAttention
 
 from torchvision import transforms
 # from torchvision.transforms import v2
-
-import os
 
 import os
 #import from MMDetection end
