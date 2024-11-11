@@ -1,6 +1,6 @@
 
 
-## Spatial-Channel State Modeling for Few-Shot Object Detection
+## Few-Shot Object Detection via Spatial-Channel State Space Model
 
 
 
