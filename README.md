@@ -30,17 +30,9 @@
   pip install -r requirements.txt
   ```
 
-**3. Prepare Data and Weights**
+**3. Prepare Data**
 * Data Preparation
-  - We evaluate our models on two datasets:
-
-    | Dataset | Size | GoogleDrive | BaiduYun | Note |
-    |:---:|:---:|:---:|:---:|:---:|
-    |VOC2007| 0.8G |[download](https://drive.google.com/file/d/1BcuJ9j9Mtymp56qGSOfYxlXN4uEVyxFm/view?usp=sharing)|[download](https://pan.baidu.com/s/1kjAmHY5JKDoG0L65T3dK9g)| - |
-    |VOC2012| 3.5G |[download](https://drive.google.com/file/d/1NjztPltqm-Z-pG94a6PiPVP4BgD8Sz1H/view?usp=sharing)|[download](https://pan.baidu.com/s/1DUJT85AG_fqP9NRPhnwU2Q)| - |
-    |vocsplit| <1M |[download](https://drive.google.com/file/d/1BpDDqJ0p-fQAFN_pthn2gqiK5nWGJ-1a/view?usp=sharing)|[download](https://pan.baidu.com/s/1518_egXZoJNhqH4KRDQvfw)| refer from [TFA](https://github.com/ucbdrive/few-shot-object-detection#models) |
-    |COCO| ~19G | - | - | download from [offical](https://cocodataset.org/#download)|
-    |cocosplit| 174M |[download](https://drive.google.com/file/d/1T_cYLxNqYlbnFNJt8IVvT7ZkWb5c0esj/view?usp=sharing)|[download](https://pan.baidu.com/s/1NELvshrbkpRS8BiuBIr5gA)| refer from [TFA](https://github.com/ucbdrive/few-shot-object-detection#models) |
+ 
   - Unzip the downloaded data-source to `datasets` and put it into your project directory:
     ```angular2html
       ...
@@ -54,9 +46,6 @@
       tools
       ...
     ```
-* Weights Preparation
-  - We use the imagenet pretrain weights to initialize our model. Download the same models from here: [GoogleDrive](https://drive.google.com/file/d/1rsE20_fSkYeIhFaNU04rBfEDkMENLibj/view?usp=sharing) [BaiduYun](https://pan.baidu.com/s/1IfxFq15LVUI3iIMGFT8slw)
-
 
 **4. Training and Evaluation**
 
