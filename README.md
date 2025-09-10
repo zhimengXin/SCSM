@@ -92,13 +92,15 @@
 
 ## Citing
 
-
+If you use this work in your research or wish to refer to the baseline results published here, please use the following BibTeX entries:
+```
 @article{xin2025few,
   title={Few-Shot Object Detection via Spatial-Channel State Space Model},
   author={Xin, Zhimeng and Wu, Tianxu and Zou, Yixiong and Chen, Shiming and Fu, Dingjie and You, Xinge},
   journal={arXiv preprint arXiv:2507.15308},
   year={2025}
 }
+```
 
 
 
