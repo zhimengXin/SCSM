@@ -51,7 +51,7 @@
 
 * Fist run voc base.
   ```angular2html
-  bash run_voc_base.sh
+  bash run_voc_base.sh    ##### Here, SFA = SFM represents one layer of the ECEA module.
   ```
 
 * pre-trained base model prepare.
@@ -91,6 +91,7 @@
 
 
 ## Citing
+
 
 
 
