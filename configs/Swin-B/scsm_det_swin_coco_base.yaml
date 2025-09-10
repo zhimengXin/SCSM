@@ -1,0 +1,63 @@
+_BASE_: "../Base-RCNN.yaml"
+MODEL:
+  WEIGHTS: "/home/xzm/xzm/FOOD/scsm/checkpoints/swin_base_patch4_window7_224_22k.pth"  #"/home/user/xinzhimeng/desk1/Defrcn_SWIN/swin_base_patch4_window7_224_22k_dt2.pth"
+  META_ARCHITECTURE: "GeneralizedRCNN"
+  MASK_ON: False
+  BACKBONE:
+    NAME: "build_swin_backbone"
+    FREEZE: False
+    ENABLE_MAMBA: True
+    # NAME: "build_resnet_backbone"
+  SWIN:
+    EMBED_DIM: 128
+    DROP_PATH_RATE: 0.2
+    NUM_HEADS: [4,8,16,32]
+    DEPTHS: [2,2,18,2]
+    IMG_SIZE: 224
+    SQUARE_PAD: 1024
+  
+
+
+  RPN:
+    IN_FEATURES: ["p3"]
+    ENABLE_DECOUPLE: True
+    BACKWARD_SCALE: 1.0
+  ROI_HEADS: 
+    NUM_CLASSES: 60
+    IN_FEATURES: ["p3"]
+    ENABLE_DECOUPLE: True
+    BACKWARD_SCALE: 1.0
+DATASETS:
+  TRAIN: ('coco14_trainval_base',)
+  TEST: ('coco14_test_base',)
+SOLVER:
+  # TYPE: "AdamW"
+  # IMS_PER_BATCH: 2
+  # WEIGHT_DECAY: 0.05
+  # STEPS: (16000, 25000)
+  # MAX_ITER: 50000
+  # CHECKPOINT_PERIOD: 5000
+  # BASE_LR: 7e-5
+  # WARMUP_ITERS: 100
+
+  TYPE: "AdamW"
+  BASE_LR: 0.0001
+  WEIGHT_DECAY: 0.05
+  WEIGHT_DECAY_NORM: 0.0
+  BIAS_LR_FACTOR: 1.0
+  WEIGHT_DECAY_BIAS: 0.0
+  IMS_PER_BATCH: 12
+  STEPS: (55000, 75000)
+  MAX_ITER: 400000
+  WARMUP_FACTOR: 0.001
+  WARMUP_ITERS: 1000
+  WARMUP_METHOD: "linear"
+  CHECKPOINT_PERIOD: 10000
+
+
+TEST:
+  EVAL_PERIOD: 10000
+
+OUTPUT_DIR: "/home/user/xinzhimeng/desk2/FSOD/coco/vitbase/"
+# SAVE_ATTENTION_MAP: True9.30
+# SAVE_ATTENTION_MAP: True
