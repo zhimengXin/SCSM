@@ -93,5 +93,14 @@
 ## Citing
 
 
+@article{xin2025few,
+  title={Few-Shot Object Detection via Spatial-Channel State Space Model},
+  author={Xin, Zhimeng and Wu, Tianxu and Zou, Yixiong and Chen, Shiming and Fu, Dingjie and You, Xinge},
+  journal={arXiv preprint arXiv:2507.15308},
+  year={2025}
+}
+
+
+
 
 
