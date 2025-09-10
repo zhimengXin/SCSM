@@ -1,0 +1,59 @@
+_BASE_: "../Base-RCNN.yaml"
+MODEL:
+  WEIGHTS: "checkpoints/swin_large_patch4_window12_384_22kdt2.pth" 
+  META_ARCHITECTURE: "GeneralizedRCNN"
+  MASK_ON: False
+  BACKBONE:
+    NAME: "build_swin_backbone"
+    FREEZE: False
+    WITHSCSM: False
+    # NAME: "build_resnet_backbone"
+  SWIN:
+    EMBED_DIM: 192
+    DROP_PATH_RATE: 0.3
+    NUM_HEADS: [6,12,24,48]
+    DEPTHS: [2,2,18,2]
+    IMG_SIZE: 384
+    SQUARE_PAD: 1024
+    WINDOW_SIZE: 12
+
+  RPN:
+    IN_FEATURES: ["p3"]
+    ENABLE_DECOUPLE: True
+    BACKWARD_SCALE: 0.0
+  ROI_HEADS: 
+    NUM_CLASSES: 15
+    IN_FEATURES: ["p3"]
+    ENABLE_DECOUPLE: True
+    BACKWARD_SCALE: 0.75
+DATASETS:
+  TRAIN: ('voc_2007_trainval_base2', 'voc_2012_trainval_base2')
+  TEST: ('voc_2007_test_base2',)
+SOLVER:
+  # TYPE: "AdamW"
+  # IMS_PER_BATCH: 2
+  # WEIGHT_DECAY: 0.05
+  # STEPS: (16000, 25000)
+  # MAX_ITER: 50000
+  # CHECKPOINT_PERIOD: 5000
+  # BASE_LR: 7e-5
+  # WARMUP_ITERS: 100
+
+  TYPE: "AdamW"
+  BASE_LR: 0.000075
+  WEIGHT_DECAY: 0.05
+  WEIGHT_DECAY_NORM: 0.0
+  BIAS_LR_FACTOR: 1.0
+  WEIGHT_DECAY_BIAS: 0.0
+  IMS_PER_BATCH: 6
+  MAX_ITER: 50000
+  STEPS: (15000, 25000)
+  WARMUP_FACTOR: 0.001
+  WARMUP_ITERS: 1000
+  WARMUP_METHOD: "linear"
+  CHECKPOINT_PERIOD: 5000
+TEST:
+  EVAL_PERIOD: 5000
+
+OUTPUT_DIR: "output/baseline/base2"
+# SAVE_ATTENTION_MAP: True
