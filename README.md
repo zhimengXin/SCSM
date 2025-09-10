@@ -4,7 +4,7 @@
 
 
 
-<div align="center"><img src="framework_yy.jpg" width="800"></div>
+<div align="center"><img src="framework.jpg" width="800"></div>
 
 
 ## Quick Start
@@ -91,4 +91,5 @@
 
 
 ## Citing
+
 
