@@ -2,10 +2,10 @@ CUDA_VISIBLE_DEVICES=0 python main.py --config-file configs/voc/scsm_det_r101_ba
 	--opts \
 	OUTPUT_DIR "output/base1" \
         MODEL.BACKBONE.WITHSCSM True \
-        # MODEL.BACKBONE.WITHSFA = False
-        # MODEL.BACKBONE.FREEZE_SFA = False
+        # MODEL.BACKBONE.WITHECEA = False
+        # MODEL.BACKBONE.FREEZE_ECEA = False
         # MODEL.BACKBONE.WITHMAMBA = False
         # MODEL.BACKBONE.WITHSCSM = False
-        # MODEL.BACKBONE.WITHSFASA = False
-        # MODEL.BACKBONE.WITHSFASENet = False
+        # MODEL.BACKBONE.WITHECEASA = False
+        # MODEL.BACKBONE.WITHECEASENet = False
         # MODEL.BACKBONE.CNN = False
