@@ -94,7 +94,19 @@
 
 If you use this work in your research or wish to refer to the baseline results published here, please use the following BibTeX entries:
 ```
-@article{xin2025few,
+
+@ARTICLE{ECEA,
+  author={Xin, Zhimeng and Wu, Tianxu and Chen, Shiming and Zou, Yixiong and Shao, Ling and You, Xinge},
+  journal={IEEE Transactions on Image Processing}, 
+  title={ECEA: Extensible Co-Existing Attention for Few-Shot Object Detection}, 
+  year={2024},
+  volume={33},
+  number={},
+  pages={5564-5576},
+  doi={10.1109/TIP.2024.3411771}}
+
+
+@article{SCSM,
   title={Few-Shot Object Detection via Spatial-Channel State Space Model},
   author={Xin, Zhimeng and Wu, Tianxu and Zou, Yixiong and Chen, Shiming and Fu, Dingjie and You, Xinge},
   journal={arXiv preprint arXiv:2507.15308},
